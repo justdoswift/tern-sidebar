@@ -90,3 +90,125 @@ html.tabs-v.lay-tiles #tabbar,
 html.tabs-v.lay-float #tabbar {
 	left: 0;
 }
+
+/* The SDK exposes clickable status segments, but no titlebar mount point. */
+#statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	display: none;
+}
+
+html.tabs-v:not(.tn-status) #statusline,
+html.tabs-v:not(.tn-status) #statusline .sl-plugins {
+	display: contents;
+}
+
+html.tabs-v:not(.tn-status) #statusline > :not(.sl-plugins),
+html.tabs-v:not(.tn-status) #statusline .sl-plugin:not([data-plugin="tern-sidebar"]) {
+	display: none;
+}
+
+/* Reserve a bounded session-title slot so the adjacent control never overlaps
+   long session names. The native tooltip retains the complete name. */
+html.tabs-v:not(.lay-studio) #tabbar .tn-session-tab {
+	width: 120px;
+	min-width: 0;
+	max-width: 120px;
+	flex: 0 0 120px;
+	margin-right: 36px;
+}
+
+html.tabs-v #tabbar .tn-session-tab .nm {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	position: fixed;
+	left: 248px;
+	top: 7px;
+	right: auto;
+	bottom: auto;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0;
+	overflow: hidden;
+	border-radius: 6px;
+	color: transparent;
+	z-index: 35;
+	cursor: pointer;
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] > .ico {
+	position: absolute;
+	left: 5.5px;
+	top: 5.5px;
+	width: 15px;
+	height: 15px;
+	color: var(--t2);
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:hover {
+	background: var(--l2);
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:hover > .ico {
+	color: var(--t1);
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+html.tabs-v.lay-float #tabbar .tb-in {
+	margin-left: 84px;
+	margin-right: auto;
+}
+
+html.tabs-v.lay-float #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	left: 252px;
+	top: 9px;
+}
+
+html.tabs-v.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	left: 170px;
+	top: 55px;
+}
+
+html.tabs-v.lay-studio #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	left: 184px;
+	top: 6px;
+}
+
+/* Keep the session controls reachable when the native rail slides offscreen. */
+html.tabs-v.tabs-auto #tabbar {
+	left: 0;
+	transform: none !important;
+	opacity: 1 !important;
+}
+
+html.tabs-v.tabs-auto.lay-rail #tabbar {
+	width: 100%;
+	height: 40px;
+	padding: 0 12px 0 84px;
+}
+
+html.tabs-v.tabs-auto.lay-rail #tabbar .tb-in {
+	padding: 0;
+	height: 40px;
+}
+
+html.tabs-v.tabs-auto.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	left: 244px;
+	top: 7px;
+}
+
+html.tabs-v.tabs-auto.lay-studio #panel {
+	top: 38px;
+	height: calc(100% - 38px);
+}

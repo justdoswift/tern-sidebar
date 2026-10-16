@@ -94,6 +94,40 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
         assert search[0] + search[2] < x
         assert width == height
 
+    def assert_header_toggle():
+        control = elements(toggle)[0]
+        switch = elements("#tabbar .tn-session-tab")[0]
+        sx, sy, sw, sh = switch["rect"]
+        x, y, width, height = control["rect"]
+        assert control["visible"] and switch["visible"]
+        assert elements("#tabbar")[0]["opacity"] == "1"
+        assert 0 <= x - sx - sw <= 12
+        assert abs(y + height / 2 - sy - sh / 2) <= 1
+        assert x + width <= ctl("state")["viewport"][0]
+
+    def sidebar_collapsed():
+        x, _, width, _ = elements("#sidebar")[0]["rect"]
+        return x + width <= 8
+
+    def exercise_sidebar_toggle():
+        before = ctl("state")
+        pane_id = before["focused"]["id"]
+        columns = next(p["cols"] for p in before["panes"] if p["id"] == pane_id)
+        assert_header_toggle()
+        scenario("click", toggle)
+        scenario("move", 500, 200)
+        eventually(sidebar_collapsed)
+        assert_header_toggle()
+        assert next(p["cols"] for p in ctl("state")["panes"] if p["id"] == pane_id) > columns
+        assert not elements(button)[0]["visible"]
+        assert ctl("state")["focused"]["id"] == before["focused"]["id"]
+        assert ctl("state")["status_bar"] == before["status_bar"]
+        scenario("click", toggle)
+        eventually(lambda: elements("#sidebar")[0]["rect"][0] == 0)
+        assert_header_toggle()
+        assert_footer_button()
+        assert ctl("state")["focused"]["id"] == before["focused"]["id"]
+
     def capture(name):
         shot = ctl("shot", name)
         for field in ("png", "layout"):
@@ -102,6 +136,7 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
 
     busy = '#sidebar .nav-row[aria-label$=" · working"] > .tn-tc'
     button = "#tabbar .tb-add"
+    toggle = '#statusline .sl-plugin[data-plugin="tern-sidebar"]'
     def marker(title):
         return elements(f'#sidebar .nav-row[aria-label^="{title}"] > .tn-tc')[0]
 
@@ -122,10 +157,15 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             eventually(lambda: control.exists() and ctl("state")["gate"]["phase"] == "off")
             ctl("ready")
             scenario("tabs", "vertical")
+            scenario("tabs", "autohide", "off")
+            scenario("status-bar", "off")
+            eventually(lambda: elements("#sidebar")[0]["rect"][0] == 0)
             scenario("session", "rename", "Alpha")
             scenario("rename", "#1")
             cwd = ctl("state")["focused"]["cwd"]
             assert_footer_button()
+            exercise_sidebar_toggle()
+            capture("toggle-expanded-light")
             assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-dk"))
             assert not ctl("state")["status_bar"]
             original_pane = ctl("state")["focused"]["id"]
@@ -187,6 +227,8 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
                 "Waiting for input is not a completed turn"
             eventually(lambda: unread_marker("#1"))
             completed = marker("#1")
+            exercise_sidebar_toggle()
+            assert unread_marker("#1"), "Collapsing the sidebar must not mark background work read"
             assert completed["backgroundColor"] != "rgba(0, 0, 0, 0)"
             assert completed["transform"] == "none"
             capture("unread-light")
@@ -227,13 +269,18 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             scenario("tabs", "autohide", "on")
             assert eventually(lambda: not elements(button)[0]["visible"])
             scenario("tabs", "autohide", "off")
+            scenario("session", "rename", "长会话名称 — A very long session title that must not cover the toggle")
             for layout in ("rail", "studio", "float", "tiles"):
                 scenario("layout", layout)
                 assert_footer_button()
+                exercise_sidebar_toggle()
+            capture("toggle-long-title")
+            scenario("session", "rename", "Alpha")
             scenario("tabs", "horizontal")
             header = elements("#tabbar")[0]["rect"]
             tab_button = elements(button)[0]["rect"]
             assert tab_button[1] + tab_button[3] <= header[1] + header[3]
+            assert not any(item["visible"] for item in elements(toggle))
             scenario("tabs", "vertical")
             scenario("plugins", "run", "appearance:dark")
             scenario("surface-play", fixture, "until", "1")
@@ -242,6 +289,19 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             assert_footer_button()
             assert elements(busy)[0]["visible"]
             assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-dk"))
+            exercise_sidebar_toggle()
+            scenario("click", toggle)
+            scenario("move", 500, 200)
+            eventually(sidebar_collapsed)
+            capture("toggle-collapsed-dark-short")
+            assert_header_toggle()
+            scenario("plugins", "run", "reload_plugins")
+            eventually(sidebar_collapsed)
+            assert_header_toggle()
+            scenario("click", toggle)
+            eventually(lambda: elements("#sidebar")[0]["rect"][0] == 0)
+            assert_footer_button()
+            print("PASS: adjacent header toggle, collapsed recovery, saved preference, status bar independence, unread retention")
             print("PASS: footer in all layouts, horizontal tabs, auto-hide, icon-free rows, dark/short window")
             print(f"Screenshots: {OUT}")
     except Exception:

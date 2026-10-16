@@ -73,6 +73,37 @@ tern.command({
 	run = create_session,
 })
 
+local sidebar_auto = false
+local function sync_sidebar(cx)
+	local value = cx.settings:get("tabs_autohide")
+	if value ~= sidebar_auto then
+		sidebar_auto = value
+		tern.chrome.refresh()
+	end
+end
+
+tern.command({
+	id = "toggle_sidebar",
+	title = "展开／折叠侧栏 / Toggle sidebar",
+	icon = "sidebar",
+	available = function(cx)
+		return cx.settings:get("tabs") == "Vertical"
+	end,
+	run = function(cx)
+		cx.settings:set("tabs_autohide", not cx.settings:get("tabs_autohide"))
+		sync_sidebar(cx)
+	end,
+})
+
+tern.chrome.status(function()
+	return { {
+		text = sidebar_auto and "展开侧栏 / Expand sidebar" or "折叠侧栏 / Collapse sidebar",
+		icon = "sidebar",
+		tone = sidebar_auto and "muted" or "accent",
+		command = "plugin.tern-sidebar.toggle_sidebar",
+	} }
+end)
+
 for _, event in { "focus", "pane_created", "pane_closed", "tab_created", "tab_closed" } do
 	tern.on(event, function()
 		queue_order()
@@ -84,6 +115,7 @@ end
 local function sync(cx)
 	if cx then
 		update_order(cx)
+		sync_sidebar(cx)
 	end
 	tern.timer(1000, sync)
 end
