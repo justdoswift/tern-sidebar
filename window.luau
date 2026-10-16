@@ -35,17 +35,6 @@ tern.command({
 	run = create_session,
 })
 
-tern.chrome.status(function()
-	return {
-		{
-			text = "新建会话",
-			icon = "plus",
-			tone = "tern-sidebar-new",
-			command = "plugin.tern-sidebar.new_session",
-		},
-	}
-end)
-
 for _, event in { "focus", "pane_created", "pane_closed", "tab_created", "tab_closed" } do
 	tern.on(event, function()
 		queue_order()

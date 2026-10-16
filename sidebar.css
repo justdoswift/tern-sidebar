@@ -24,30 +24,24 @@
 	#sidebar .nav-row[aria-label$=" · working"] > .tn-tc { animation: none; }
 }
 
-/* Keep the native status action clickable even with the status bar hidden. */
-html.tabs-v:not(.tn-status) #statusline {
-	display: contents;
-}
-
-html.tabs-v:not(.tn-status) #statusline > :not(.sl-plugins),
-html.tabs-v:not(.tn-status) #statusline .sl-plugin:not([data-plugin="tern-sidebar"]) {
+#sidebar .nav-row > .tn-dk {
 	display: none;
-}
-
-html.tabs-v:not(.tn-status) #statusline .sl-plugins {
-	display: contents;
 }
 
 html.tabs-v #sidebar > nav.tn-vt {
 	margin-bottom: 36px;
 }
 
-html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v #tabbar .tb-in > .icon-btn.tb-add {
 	position: fixed;
 	left: 14px;
+	top: auto;
+	right: auto;
 	bottom: 50px;
 	width: calc(var(--vt-w) - 28px);
 	height: 30px;
+	margin: 0;
+	padding: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -58,17 +52,17 @@ html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] {
 	z-index: 30;
 }
 
-html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:hover {
+html.tabs-v #tabbar .tb-in > .icon-btn.tb-add:hover {
 	background: var(--l2);
 	color: var(--t1);
 }
 
-html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:focus-visible {
+html.tabs-v #tabbar .tb-in > .icon-btn.tb-add:focus-visible {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 }
 
-html.tabs-v.tabs-auto:not(.tn-vt-out) #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v.tabs-auto:not(.tn-vt-out) #tabbar .tb-in > .icon-btn.tb-add {
 	display: none;
 }
 

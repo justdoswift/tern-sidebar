@@ -78,6 +78,17 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
     def elements(selector):
         return ctl("dump", selector)["elements"]
 
+    def assert_footer_button():
+        control = elements(button)[0]
+        sidebar = elements("#sidebar")[0]["rect"]
+        search = elements("#sidebar .tn-vt-find")[0]["rect"]
+        listing = elements("#sidebar > nav.tn-vt")[0]["rect"]
+        x, y, width, height = control["rect"]
+        assert control["visible"]
+        assert sidebar[0] <= x and x + width <= sidebar[0] + sidebar[2]
+        assert listing[1] + listing[3] <= y
+        assert y + height <= search[1]
+
     def capture(name):
         shot = ctl("shot", name)
         for field in ("png", "layout"):
@@ -85,7 +96,7 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             shutil.copy2(source, OUT / source.name)
 
     busy = '#sidebar .nav-row[aria-label$=" · working"] > .tn-tc'
-    button = '[data-plugin="tern-sidebar"]'
+    button = "#tabbar .tb-add"
     fixture = str(ROOT / "test" / "omp-progress.jsonl")
     try:
         with (OUT / "runtime.log").open("w") as log:
@@ -102,11 +113,19 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             scenario("session", "rename", "Alpha")
             scenario("rename", "#1")
             cwd = ctl("state")["focused"]["cwd"]
-            assert elements(button)[0]["visible"]
+            assert_footer_button()
+            assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-dk"))
             assert not ctl("state")["status_bar"]
+            original_pane = ctl("state")["focused"]["id"]
             scenario("click", button)
+            state = ctl("state")
+            assert len(state["sessions"]) == 1 and state["sessions"][0]["tabs"] == 2
+            assert state["focused"]["id"] != original_pane
+            assert state["focused"]["cwd"] == cwd
+            scenario("tab", "close")
+            assert ctl("state")["focused"]["id"] == original_pane
+            scenario("key", "ctrl+alt+n")
             assert len(ctl("state")["sessions"]) == 2
-            assert ctl("state")["focused"]["cwd"] == cwd
             scenario("session", "rename", "Beta")
             scenario("rename", "#2")
             scenario("key", "ctrl+alt+n")
@@ -118,7 +137,7 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             for title in ("#1", "#2", "#3"):
                 scenario("click", f'#sidebar .nav-row[aria-label="{title}"]')
                 assert positions() == baseline, (title, positions(), baseline)
-            print("PASS: button, shortcut, inherited directory, click-stable session positions")
+            print("PASS: footer creates a tab, shortcut creates a session, rows keep their positions")
 
             scenario("plugins", "run", "reload_plugins")
             assert eventually(lambda: positions() == baseline)
@@ -148,18 +167,27 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             assert elements("#tabbar")[0]["rect"][0] == sidebar[0]
             assert elements("#tabbar .tn-session-tab")[0]["rect"][0] < sidebar[2]
             scenario("status-bar", "on")
-            assert elements(button)[0]["visible"]
+            assert_footer_button()
             scenario("move", 500, 200)
             scenario("tabs", "autohide", "on")
             assert eventually(lambda: not elements(button)[0]["visible"])
             scenario("tabs", "autohide", "off")
+            for layout in ("rail", "studio", "float", "tiles"):
+                scenario("layout", layout)
+                assert_footer_button()
+            scenario("tabs", "horizontal")
+            header = elements("#tabbar")[0]["rect"]
+            tab_button = elements(button)[0]["rect"]
+            assert tab_button[1] + tab_button[3] <= header[1] + header[3]
+            scenario("tabs", "vertical")
             scenario("plugins", "run", "appearance:dark")
             scenario("surface-play", fixture, "until", "1")
             ctl("resize", "720", "480")
             capture("working-dark-short")
-            assert elements(button)[0]["visible"]
+            assert_footer_button()
             assert elements(busy)[0]["visible"]
-            print("PASS: left header, status-bar toggle, sidebar auto-hide, dark/short window")
+            assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-dk"))
+            print("PASS: footer in all layouts, horizontal tabs, auto-hide, icon-free rows, dark/short window")
             print(f"Screenshots: {OUT}")
     finally:
         if control.exists():
