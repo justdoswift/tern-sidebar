@@ -45,7 +45,10 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
     config = work / "config"
     plugins = config / "plugins"
     plugins.mkdir(parents=True)
-    (plugins / "tern-sidebar.path").write_text(str(ROOT) + "\n")
+    # Tern watches linked sources recursively: screenshots written under ROOT
+    # must not reload the plugin and erase the unread state being tested.
+    shutil.copytree(ROOT, plugins / "tern-sidebar",
+                    ignore=shutil.ignore_patterns("artifacts", "tern.d.luau", ".git"))
     control = work / "window.sock"
     daemon_socket = work / "daemon.sock"
     env = {k: v for k, v in os.environ.items() if not k.startswith("TERN_")}
@@ -87,7 +90,9 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
         assert control["visible"]
         assert sidebar[0] <= x and x + width <= sidebar[0] + sidebar[2]
         assert listing[1] + listing[3] <= y
-        assert y + height <= search[1]
+        assert y == search[1] and height == search[3]
+        assert search[0] + search[2] < x
+        assert width == height
 
     def capture(name):
         shot = ctl("shot", name)
@@ -97,6 +102,13 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
 
     busy = '#sidebar .nav-row[aria-label$=" · working"] > .tn-tc'
     button = "#tabbar .tb-add"
+    def marker(title):
+        return elements(f'#sidebar .nav-row[aria-label^="{title}"] > .tn-tc')[0]
+
+    def unread_marker(title):
+        value = marker(title)
+        return value["visible"] and value["backgroundColor"] != "rgba(0, 0, 0, 0)"
+
     fixture = str(ROOT / "test" / "omp-progress.jsonl")
     try:
         with (OUT / "runtime.log").open("w") as log:
@@ -163,6 +175,49 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             assert not ctl("state")["focused"]["busy"] and not elements(busy)
             print("PASS: OMP progress animates across sessions; waiting/idle stops the spinner")
 
+            assert not marker("#1")["visible"]
+            scenario("session", "switch", "Beta")
+            assert not marker("#1")["visible"], "Foreground completion must stay read"
+            scenario("session", "switch", "Alpha")
+            scenario("surface-play", fixture, "paced", 0.25)
+            scenario("session", "switch", "Beta")
+            assert elements(busy)[0]["visible"]
+            eventually(lambda: not elements(busy))
+            assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-tc")), \
+                "Waiting for input is not a completed turn"
+            eventually(lambda: unread_marker("#1"))
+            completed = marker("#1")
+            assert completed["backgroundColor"] != "rgba(0, 0, 0, 0)"
+            assert completed["transform"] == "none"
+            capture("unread-light")
+            scenario("filter", "#2")
+            assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-tc"))
+            ctl("filter")
+            assert marker("#1")["visible"], "Filtering must not mark a completion read"
+            scenario("click", '#sidebar .nav-row[aria-label^="#1"]')
+            assert not marker("#1")["visible"]
+            scenario("session", "switch", "Beta")
+            assert not marker("#1")["visible"], "Read completion must not reappear"
+
+            # A different tab in the same named session is also background work.
+            scenario("session", "switch", "Alpha")
+            scenario("tab", "new")
+            scenario("rename", "Alpha other")
+            scenario("click", '#sidebar .nav-row[aria-label^="#1"]')
+            scenario("surface-play", fixture, "paced", 0.25)
+            scenario("click", '#sidebar .nav-row[aria-label="Alpha other"]')
+            eventually(lambda: unread_marker("#1"))
+            assert not marker("Alpha other")["visible"]
+            scenario("plugins", "run", "appearance:dark")
+            ctl("resize", "720", "480")
+            capture("unread-dark-short")
+            scenario("click", '#sidebar .nav-row[aria-label^="#1"]')
+            assert not marker("#1")["visible"]
+            scenario("click", '#sidebar .nav-row[aria-label="Alpha other"]')
+            assert not marker("#1")["visible"]
+            scenario("tab", "close")
+            print("PASS: background completion stays unread until opened; waiting and foreground completion do not")
+
             sidebar = elements("#sidebar")[0]["rect"]
             assert elements("#tabbar")[0]["rect"][0] == sidebar[0]
             assert elements("#tabbar .tn-session-tab")[0]["rect"][0] < sidebar[2]
@@ -189,6 +244,10 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             assert not any(item["visible"] for item in elements("#sidebar .nav-row > .tn-dk"))
             print("PASS: footer in all layouts, horizontal tabs, auto-hide, icon-free rows, dark/short window")
             print(f"Screenshots: {OUT}")
+    except Exception:
+        capture("failure")
+        (OUT / "failure-state.json").write_text(json.dumps(ctl("state"), indent=2))
+        raise
     finally:
         if control.exists():
             try:

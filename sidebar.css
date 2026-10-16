@@ -1,3 +1,15 @@
+/* This slot now means activity/unread completion, not the saved tab color. */
+#sidebar .nav-row > .tn-tc {
+	display: var(--tern-sidebar-unread, none);
+	width: 8px;
+	height: 8px;
+	flex: 0 0 8px;
+	border: none;
+	border-radius: 50%;
+	background: var(--ok) !important;
+	box-shadow: none;
+}
+
 #sidebar .nav-row[aria-label$=" · working"] > .tn-tc {
 	display: block;
 	width: 10px;
@@ -6,7 +18,7 @@
 	flex: 0 0 10px;
 	border: 1.5px solid var(--live, var(--accent));
 	border-right-color: transparent;
-	background: transparent;
+	background: transparent !important;
 	box-shadow: none;
 	animation: tern-sidebar-spin 800ms linear infinite;
 }
@@ -28,17 +40,17 @@
 	display: none;
 }
 
-html.tabs-v #sidebar > nav.tn-vt {
-	margin-bottom: 36px;
+html.tabs-v #sidebar > .tn-vt-find {
+	width: calc(var(--vt-w) - 64px);
 }
 
 html.tabs-v #tabbar .tb-in > .icon-btn.tb-add {
 	position: fixed;
-	left: 14px;
+	left: calc(var(--vt-w) - 44px);
 	top: auto;
 	right: auto;
-	bottom: 50px;
-	width: calc(var(--vt-w) - 28px);
+	bottom: 14px;
+	width: 30px;
 	height: 30px;
 	margin: 0;
 	padding: 0;
@@ -50,6 +62,13 @@ html.tabs-v #tabbar .tb-in > .icon-btn.tb-add {
 	background: var(--l1);
 	color: var(--t2);
 	z-index: 30;
+}
+
+html.tabs-v.lay-studio #tabbar .tb-in > .icon-btn.tb-add {
+	bottom: 8px;
+	width: 28px;
+	height: 28px;
+	border-radius: 14px;
 }
 
 html.tabs-v #tabbar .tb-in > .icon-btn.tb-add:hover {
