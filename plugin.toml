@@ -1,0 +1,8 @@
+schema = 1
+id = "tern-sidebar"
+name = "tern-sidebar"
+version = "0.1.0"
+description = "Stable session navigation, quick creation, and native task spinners."
+icon = "sidebar"
+window = "window.luau"
+styles = ["sidebar.css"]

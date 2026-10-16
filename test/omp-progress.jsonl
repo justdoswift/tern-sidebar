@@ -1,0 +1,7 @@
+{"t":0,"dir":"out","verb":"o","params":{},"body":{"id":"sidebar-smoke","mode":"inline","title":"OMP progress smoke","role":"omp.session"}}
+{"t":0,"dir":"out","verb":"osc","params":{},"body":"9;4;3"}
+{"t":0,"dir":"out","verb":"f","params":{},"body":{"sf":"sidebar-smoke","s":1,"ops":[["add","main","sidebar-smoke",null,{"id":"main","k":"col","c":[{"id":"state","k":"text","p":{"text":"Synthetic active turn"}}]}]]}}
+{"t":1000,"dir":"out","verb":"osc","params":{},"body":"9;4;4"}
+{"t":1000,"dir":"out","verb":"f","params":{},"body":{"sf":"sidebar-smoke","s":2,"ops":[["set","state",{"text":"Synthetic waiting turn"}]]}}
+{"t":2000,"dir":"out","verb":"osc","params":{},"body":"9;4;0;"}
+{"t":2000,"dir":"out","verb":"f","params":{},"body":{"sf":"sidebar-smoke","s":3,"ops":[["set","state",{"text":"Synthetic idle turn"}]]}}

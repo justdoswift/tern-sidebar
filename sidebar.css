@@ -1,0 +1,79 @@
+#sidebar .nav-row[aria-label$=" · working"] > .tn-tc {
+	display: block;
+	width: 10px;
+	height: 10px;
+	box-sizing: border-box;
+	flex: 0 0 10px;
+	border: 1.5px solid var(--live, var(--accent));
+	border-right-color: transparent;
+	background: transparent;
+	box-shadow: none;
+	animation: tern-sidebar-spin 800ms linear infinite;
+}
+
+#sidebar .nav-row[aria-label$=" · working"] .dot.live {
+	display: none;
+}
+
+@keyframes tern-sidebar-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#sidebar .nav-row[aria-label$=" · working"] > .tn-tc { animation: none; }
+}
+
+/* Keep the native status action clickable even with the status bar hidden. */
+html.tabs-v:not(.tn-status) #statusline {
+	display: contents;
+}
+
+html.tabs-v:not(.tn-status) #statusline > :not(.sl-plugins),
+html.tabs-v:not(.tn-status) #statusline .sl-plugin:not([data-plugin="tern-sidebar"]) {
+	display: none;
+}
+
+html.tabs-v:not(.tn-status) #statusline .sl-plugins {
+	display: contents;
+}
+
+html.tabs-v #sidebar > nav.tn-vt {
+	margin-bottom: 36px;
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	position: fixed;
+	left: 14px;
+	bottom: 50px;
+	width: calc(var(--vt-w) - 28px);
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	border-radius: 8px;
+	background: var(--l1);
+	color: var(--t2);
+	z-index: 30;
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:hover {
+	background: var(--l2);
+	color: var(--t1);
+}
+
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+html.tabs-v.tabs-auto:not(.tn-vt-out) #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+	display: none;
+}
+
+/* Native titlebar padding already reserves the platform window controls. */
+html.tabs-v.lay-tiles #tabbar,
+html.tabs-v.lay-float #tabbar {
+	left: 0;
+}
