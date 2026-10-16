@@ -40,6 +40,43 @@
 	display: none;
 }
 
+/* Session headings group the tabs; do not restyle the selected tab itself. */
+#sidebar .nav-group > .nav-head {
+	min-height: 32px;
+	margin: 6px 0 4px;
+	padding: 4px 10px;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--t1);
+	background: transparent;
+	border-bottom: 1px solid var(--l2);
+	border-radius: 0;
+}
+
+#sidebar .nav-group > .nav-head:hover {
+	background: var(--l1);
+}
+
+#sidebar .nav-head > span:first-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#sidebar .nav-head > .chev {
+	flex-shrink: 0;
+	opacity: 1;
+}
+
+#sidebar .nav-head > .n {
+	flex-shrink: 0;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--t2);
+}
+
 html.tabs-v #sidebar > .tn-vt-find {
 	width: calc(var(--vt-w) - 64px);
 }
