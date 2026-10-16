@@ -1,6 +1,6 @@
 # tern-sidebar
 
-Tern 原生侧栏插件。已在 macOS 的 Tern **0.8.4（6b4535f）** 上验证；无需 Node.js、后台服务或额外 OMP 扩展。
+Tern 原生侧栏插件，当前版本 **0.2.0**。已在 macOS 的 Tern **0.8.4（6b4535f）** 上验证；无需 Node.js、后台服务或额外 OMP 扩展。
 
 ## 功能
 
