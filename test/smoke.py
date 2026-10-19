@@ -79,6 +79,26 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
                         groups.append((name, group["rect"][1]))
         return sorted(groups, key=lambda row: row[1])
 
+    def tab_titles():
+        result = {}
+        for root in ctl("tree")["tree"]:
+            if root.get("id") != "sidebar":
+                continue
+            for group in nodes(root):
+                if "nav-group" not in group.get("class", "").split():
+                    continue
+                name = group["children"][0]["children"][0]["text"]
+                rows = []
+                for row in nodes(group):
+                    if ("nav-row" in row.get("class", "").split()
+                            and row["rect"][2] > 0 and row["rect"][3] > 0):
+                        label_node = next(n for n in nodes(row)
+                                          if "lbl" in n.get("class", "").split())
+                        label = "".join(n.get("text", "") for n in nodes(label_node))
+                        rows.append((row["rect"][1], label))
+                result[name] = [label for _, label in sorted(rows)]
+        return result
+
     def elements(selector):
         return ctl("dump", selector)["elements"]
 
@@ -121,6 +141,7 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
         assert_header_toggle()
         assert next(p["cols"] for p in ctl("state")["panes"] if p["id"] == pane_id) > columns
         assert not elements(button)[0]["visible"]
+        assert not any(item["visible"] for item in elements(older))
         assert ctl("state")["focused"]["id"] == before["focused"]["id"]
         assert ctl("state")["status_bar"] == before["status_bar"]
         scenario("click", toggle)
@@ -138,7 +159,7 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
     busy = '#sidebar .nav-row[aria-label$=" · working"] > .tn-tc'
     button = "#tabbar .tb-add"
     toggle = '#statusline .sl-plugin[title="plugin.tern-sidebar.toggle_sidebar"]'
-    older = '#statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_sessions"]'
+    older = '#statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_tabs"]'
     def marker(title):
         return elements(f'#sidebar .nav-row[aria-label^="{title}"] > .tn-tc')[0]
 
@@ -309,35 +330,57 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             scenario("plugins", "run", "appearance:light")
             ctl("resize", "1280", "800")
             scenario("status-bar", "off")
-            # The limit counts sessions, not tabs, and only hides the older ones.
+            # A fourth/fifth session never disappears: the limit is per-session tabs.
             assert not elements(older)
-            scenario("tab", "new")
-            assert not elements(older)
-            scenario("tab", "close")
             for name, title in (("Delta", "#4"), ("Epsilon", "#5")):
                 scenario("session", "new", name)
                 scenario("rename", title)
-            recent = ["Epsilon", "Delta", "Gamma"]
-            all_sessions = recent + ["Beta", "Alpha"]
-            eventually(lambda: [row[0] for row in positions()] == recent)
+            all_sessions = ["Epsilon", "Delta", "Gamma", "Beta", "Alpha"]
+            eventually(lambda: [row[0] for row in positions()] == all_sessions)
+            assert not elements(older)
+            scenario("session", "switch", "Alpha")
+            first_alpha_pane = ctl("state")["focused"]["id"]
+            for title in ("A2", "A3"):
+                scenario("tab", "new")
+                scenario("rename", title)
+            assert tab_titles()["Alpha"] == ["A3", "A2", "#1"]
+            assert not elements(older)
+            scenario("tab", "new")
+            scenario("rename", "A4")
+            eventually(lambda: tab_titles()["Alpha"] == ["A4", "A3", "A2"])
             assert elements(older)[0]["visible"]
+            scenario("tab", "new")
+            scenario("rename", "A5")
+            assert tab_titles()["Alpha"] == ["A5", "A4", "A3"]
+            scenario("session", "switch", "Beta")
+            for title in ("B2", "B3", "B4"):
+                scenario("tab", "new")
+                scenario("rename", title)
+            assert tab_titles()["Beta"] == ["B4", "B3", "B2"]
+            assert tab_titles()["Alpha"] == ["A5", "A4", "A3"]
+            assert [row[0] for row in positions()] == all_sessions
+            scenario("session", "switch", "Epsilon")
             pane_id = ctl("state")["focused"]["id"]
             scenario("click", older)
-            assert [row[0] for row in positions()] == all_sessions
+            assert tab_titles()["Alpha"] == ["A5", "A4", "A3", "A2", "#1"]
+            assert tab_titles()["Beta"] == ["B4", "B3", "B2", "#2"]
             assert ctl("state")["focused"]["id"] == pane_id
-            scenario("palette", "Show or hide older sessions")
+            scenario("palette", "Show or hide older tabs")
             scenario("key", "enter")
-            assert [row[0] for row in positions()] == recent
+            assert tab_titles()["Alpha"] == ["A5", "A4", "A3"]
+            assert tab_titles()["Beta"] == ["B4", "B3", "B2"]
             scenario("filter", "#1")
-            assert [row[0] for row in positions()] == ["Alpha"]
+            assert tab_titles() == {"Alpha": ["#1"]}
             ctl("filter")
-            assert [row[0] for row in positions()] == recent
+            assert tab_titles()["Alpha"] == ["A5", "A4", "A3"]
             scenario("session", "switch", "Alpha")
-            assert [row[0] for row in positions()] == all_sessions
+            scenario("tab", "1")
+            eventually(lambda: tab_titles()["Alpha"] == ["A5", "A4", "A3", "A2", "#1"])
+            assert ctl("state")["focused"]["id"] == first_alpha_pane
             scenario("surface-play", fixture, "paced", 0.25)
             scenario("session", "switch", "Epsilon")
             scenario("click", older)
-            assert [row[0] for row in positions()] == recent
+            assert tab_titles()["Alpha"] == ["A5", "A4", "A3"]
             eventually(lambda: not elements(busy))
             scenario("click", older)
             eventually(lambda: unread_marker("#1"))
@@ -346,8 +389,9 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             scenario("session", "switch", "Epsilon")
             scenario("click", older)
             scenario("plugins", "run", "reload_plugins")
-            eventually(lambda: [row[0] for row in positions()] == recent)
-            capture("recent-sessions-light")
+            eventually(lambda: tab_titles()["Alpha"] == ["A5", "A4", "A3"])
+            assert [row[0] for row in positions()] == all_sessions
+            capture("recent-tabs-light")
             scenario("status-bar", "on")
             for layout in ("rail", "studio", "float", "tiles"):
                 scenario("layout", layout)
@@ -362,20 +406,26 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
                 exercise_sidebar_toggle()
             scenario("plugins", "run", "appearance:dark")
             ctl("resize", "720", "480")
-            capture("recent-sessions-dark-short")
+            capture("recent-tabs-dark-short")
             scenario("tabs", "horizontal")
             assert not any(item["visible"] for item in elements(older))
             scenario("tabs", "vertical")
-            scenario("session", "close")
-            eventually(lambda: len(ctl("state")["sessions"]) == 4)
-            scenario("session", "close")
-            eventually(lambda: not elements(older))
-            # Tern 0.9.4 can retain its pre-close DOM, even without plugins.
-            # A mismatched row count must never hide another live session.
-            assert {"Gamma", "Beta", "Alpha"} <= {row[0] for row in positions()}
-            scenario("plugins", "run", "appearance:light")
             ctl("resize", "1280", "800")
-            print("PASS: newest three, older-session toggle, hidden-session navigation, unread retention, filtering and deletion")
+            scenario("session", "switch", "Beta")
+            scenario("tab", "close")
+            eventually(lambda: tab_titles()["Beta"] == ["B3", "B2", "#2"])
+            assert elements(older)[0]["visible"]
+            scenario("session", "switch", "Alpha")
+            eventually(lambda: tab_titles()["Alpha"] == ["A5", "A4", "A3", "A2", "#1"])
+            scenario("click", '#sidebar .nav-row[aria-label="A5"]')
+            scenario("click", older)
+            scenario("tab", "close")
+            eventually(lambda: tab_titles()["Alpha"] == ["A4", "A3", "A2"])
+            scenario("tab", "close")
+            eventually(lambda: not elements(older))
+            assert tab_titles()["Alpha"] == ["A3", "A2", "#1"]
+            assert [row[0] for row in positions()] == all_sessions
+            print("PASS: all sessions remain visible; newest three tabs per session, overflow control, old-tab navigation, unread retention and filtering")
             print(f"Screenshots: {OUT}")
     except Exception:
         capture("failure")

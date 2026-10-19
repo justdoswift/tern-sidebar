@@ -3,9 +3,8 @@ local last_order = nil
 local busy = {}
 local unread = {}
 local focused_tab = nil
-local show_older = false
-local older_count = 0
-local last_session = nil
+local show_older_tabs = false
+local older_tab_count = 0
 
 local function observe(tab)
 	local previous = busy[tab.id]
@@ -19,6 +18,7 @@ local function observe(tab)
 end
 
 local function update_order(cx)
+	local previous_tab = focused_tab
 	local focused = cx.session:pane("@focused")
 	local tabs = cx.session:tabs()
 	local present = {}
@@ -37,18 +37,16 @@ local function update_order(cx)
 	focused_tab = focused and focused.tab or nil
 	if focused_tab then unread[focused_tab] = nil end
 	local sessions, hosts = cx.sessions:list(), cx.hosts:list()
-	local current_session = cx.sessions:current().id
-	local css, count, current_is_older = Order.styles(sessions, hosts, tabs, unread, show_older, current_session)
-	-- Navigating to a hidden session through a shortcut/palette must reveal it.
-	if current_is_older and current_session ~= last_session then
-		show_older = true
-		css = Order.styles(sessions, hosts, tabs, unread, true, current_session)
+	local css, count, current_is_older = Order.styles(sessions, hosts, tabs, unread, show_older_tabs, focused_tab)
+	-- A keyboard/shortcut jump to a hidden tab must reveal its list entry.
+	if current_is_older and focused_tab ~= previous_tab then
+		show_older_tabs = true
+		css = Order.styles(sessions, hosts, tabs, unread, true, focused_tab)
 		tern.chrome.refresh()
 	end
-	last_session = current_session
-	if count ~= older_count then
-		older_count = count
-		if count == 0 then show_older = false end
+	if count ~= older_tab_count then
+		older_tab_count = count
+		if count == 0 then show_older_tabs = false end
 		tern.chrome.refresh()
 	end
 	if css ~= last_order then
@@ -113,13 +111,13 @@ tern.command({
 })
 
 tern.command({
-	id = "toggle_older_sessions",
-	title = "展开／收起较早会话 / Show or hide older sessions",
+	id = "toggle_older_tabs",
+	title = "展开／收起较早标签页 / Show or hide older tabs",
 	available = function(cx)
-		return cx.settings:get("tabs") == "Vertical" and older_count > 0
+		return cx.settings:get("tabs") == "Vertical" and older_tab_count > 0
 	end,
 	run = function(cx)
-		show_older = not show_older
+		show_older_tabs = not show_older_tabs
 		update_order(cx)
 		tern.chrome.refresh()
 	end,
@@ -132,11 +130,11 @@ tern.chrome.status(function()
 		tone = sidebar_auto and "muted" or "accent",
 		command = "plugin.tern-sidebar.toggle_sidebar",
 	} }
-	if older_count > 0 then
+	if older_tab_count > 0 then
 		table.insert(segments, {
-			text = show_older and "▾ 收起较早会话 / Show less"
-				or ("▸ 较早会话 (" .. older_count .. ") / Older (" .. older_count .. ")"),
-			command = "plugin.tern-sidebar.toggle_older_sessions",
+			text = show_older_tabs and "▾ 收起标签页 / Show less"
+				or ("▸ 更多标签页 (" .. older_tab_count .. ") / More tabs"),
+			command = "plugin.tern-sidebar.toggle_older_tabs",
 		})
 	end
 	return segments

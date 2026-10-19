@@ -128,6 +128,12 @@ html.tabs-v.lay-float #tabbar {
 	left: 0;
 }
 
+/* Tab rows need a flex parent for visual reverse order; saved tab order stays intact. */
+#sidebar .nav-items > div {
+	display: flex;
+	flex-direction: column;
+}
+
 /* The SDK exposes clickable status segments, but no titlebar mount point. */
 #statusline .sl-plugin[data-plugin="tern-sidebar"] {
 	display: none;
@@ -254,7 +260,7 @@ html.tabs-v.tabs-auto.lay-studio #panel {
 }
 
 /* A second native action sits above Filter tabs, outside the scrolling list. */
-html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_older_sessions"] {
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_older_tabs"] {
 	position: fixed;
 	left: 14px;
 	right: auto;
@@ -278,10 +284,10 @@ html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.ter
 	cursor: pointer;
 }
 
-html.tabs-v.lay-studio #statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_sessions"] {
+html.tabs-v.lay-studio #statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_tabs"] {
 	bottom: 42px;
 }
 
-html.tabs-v.tabs-auto:not(.tn-vt-out) #statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_sessions"] {
+html.tabs-v.tabs-auto:not(.tn-vt-out) #statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_tabs"] {
 	display: none;
 }
