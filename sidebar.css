@@ -160,7 +160,7 @@ html.tabs-v #tabbar .tn-session-tab .nm {
 	white-space: nowrap;
 }
 
-html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_sidebar"] {
 	position: fixed;
 	left: 248px;
 	top: 7px;
@@ -180,7 +180,7 @@ html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] {
 	cursor: pointer;
 }
 
-html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"] > .ico {
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_sidebar"] > .ico {
 	position: absolute;
 	left: 5.5px;
 	top: 5.5px;
@@ -203,21 +203,24 @@ html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"]:focus-visible {
 }
 
 html.tabs-v.lay-float #tabbar .tb-in {
-	margin-left: 84px;
-	margin-right: auto;
+	position: fixed;
+	left: 84px;
+	top: 6px;
+	margin-left: 0;
+	margin-right: 0;
 }
 
-html.tabs-v.lay-float #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v.lay-float #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_sidebar"] {
 	left: 252px;
 	top: 9px;
 }
 
-html.tabs-v.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_sidebar"] {
 	left: 170px;
 	top: 55px;
 }
 
-html.tabs-v.lay-studio #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v.lay-studio #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_sidebar"] {
 	left: 184px;
 	top: 6px;
 }
@@ -240,7 +243,7 @@ html.tabs-v.tabs-auto.lay-rail #tabbar .tb-in {
 	height: 40px;
 }
 
-html.tabs-v.tabs-auto.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"] {
+html.tabs-v.tabs-auto.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_sidebar"] {
 	left: 244px;
 	top: 7px;
 }
@@ -248,4 +251,37 @@ html.tabs-v.tabs-auto.lay-rail #statusline .sl-plugin[data-plugin="tern-sidebar"
 html.tabs-v.tabs-auto.lay-studio #panel {
 	top: 38px;
 	height: calc(100% - 38px);
+}
+
+/* A second native action sits above Filter tabs, outside the scrolling list. */
+html.tabs-v #statusline .sl-plugin[data-plugin="tern-sidebar"][title="plugin.tern-sidebar.toggle_older_sessions"] {
+	position: fixed;
+	left: 14px;
+	right: auto;
+	top: auto;
+	bottom: 50px;
+	width: calc(var(--vt-w) - 28px);
+	height: 30px;
+	box-sizing: border-box;
+	padding: 0 6px;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 6px;
+	overflow: hidden;
+	white-space: nowrap;
+	font-size: 12px;
+	color: var(--t2);
+	background: var(--l1);
+	border-radius: 6px;
+	z-index: 30;
+	cursor: pointer;
+}
+
+html.tabs-v.lay-studio #statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_sessions"] {
+	bottom: 42px;
+}
+
+html.tabs-v.tabs-auto:not(.tn-vt-out) #statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_sessions"] {
+	display: none;
 }

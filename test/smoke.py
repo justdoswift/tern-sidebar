@@ -73,7 +73,8 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
         for root in ctl("tree")["tree"]:
             if root.get("id") == "sidebar":
                 for group in nodes(root):
-                    if "nav-group" in group.get("class", "").split():
+                    if ("nav-group" in group.get("class", "").split()
+                            and group["rect"][2] > 0 and group["rect"][3] > 0):
                         name = group["children"][0]["children"][0]["text"]
                         groups.append((name, group["rect"][1]))
         return sorted(groups, key=lambda row: row[1])
@@ -136,7 +137,8 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
 
     busy = '#sidebar .nav-row[aria-label$=" · working"] > .tn-tc'
     button = "#tabbar .tb-add"
-    toggle = '#statusline .sl-plugin[data-plugin="tern-sidebar"]'
+    toggle = '#statusline .sl-plugin[title="plugin.tern-sidebar.toggle_sidebar"]'
+    older = '#statusline .sl-plugin[title="plugin.tern-sidebar.toggle_older_sessions"]'
     def marker(title):
         return elements(f'#sidebar .nav-row[aria-label^="{title}"] > .tn-tc')[0]
 
@@ -185,7 +187,7 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             scenario("session", "rename", "Gamma")
             scenario("rename", "#3")
             baseline = eventually(lambda: positions() if [x[0] for x in positions()] ==
-                                  ["Alpha", "Beta", "Gamma"] else None)
+                                  ["Gamma", "Beta", "Alpha"] else None)
             for title in ("#1", "#2", "#3"):
                 scenario("click", f'#sidebar .nav-row[aria-label="{title}"]')
                 assert positions() == baseline, (title, positions(), baseline)
@@ -303,6 +305,77 @@ with tempfile.TemporaryDirectory(prefix="tsb-") as temp:
             assert_footer_button()
             print("PASS: adjacent header toggle, collapsed recovery, saved preference, status bar independence, unread retention")
             print("PASS: footer in all layouts, horizontal tabs, auto-hide, icon-free rows, dark/short window")
+            scenario("surface-play", fixture, "from", "1", "until", "3")
+            scenario("plugins", "run", "appearance:light")
+            ctl("resize", "1280", "800")
+            scenario("status-bar", "off")
+            # The limit counts sessions, not tabs, and only hides the older ones.
+            assert not elements(older)
+            scenario("tab", "new")
+            assert not elements(older)
+            scenario("tab", "close")
+            for name, title in (("Delta", "#4"), ("Epsilon", "#5")):
+                scenario("session", "new", name)
+                scenario("rename", title)
+            recent = ["Epsilon", "Delta", "Gamma"]
+            all_sessions = recent + ["Beta", "Alpha"]
+            eventually(lambda: [row[0] for row in positions()] == recent)
+            assert elements(older)[0]["visible"]
+            pane_id = ctl("state")["focused"]["id"]
+            scenario("click", older)
+            assert [row[0] for row in positions()] == all_sessions
+            assert ctl("state")["focused"]["id"] == pane_id
+            scenario("palette", "Show or hide older sessions")
+            scenario("key", "enter")
+            assert [row[0] for row in positions()] == recent
+            scenario("filter", "#1")
+            assert [row[0] for row in positions()] == ["Alpha"]
+            ctl("filter")
+            assert [row[0] for row in positions()] == recent
+            scenario("session", "switch", "Alpha")
+            assert [row[0] for row in positions()] == all_sessions
+            scenario("surface-play", fixture, "paced", 0.25)
+            scenario("session", "switch", "Epsilon")
+            scenario("click", older)
+            assert [row[0] for row in positions()] == recent
+            eventually(lambda: not elements(busy))
+            scenario("click", older)
+            eventually(lambda: unread_marker("#1"))
+            scenario("click", '#sidebar .nav-row[aria-label^="#1"]')
+            assert not marker("#1")["visible"]
+            scenario("session", "switch", "Epsilon")
+            scenario("click", older)
+            scenario("plugins", "run", "reload_plugins")
+            eventually(lambda: [row[0] for row in positions()] == recent)
+            capture("recent-sessions-light")
+            scenario("status-bar", "on")
+            for layout in ("rail", "studio", "float", "tiles"):
+                scenario("layout", layout)
+                fold_control = elements(older)[0]
+                sidebar = elements("#sidebar")[0]["rect"]
+                listing = elements("#sidebar > nav.tn-vt")[0]["rect"]
+                search = elements("#sidebar .tn-vt-find")[0]["rect"]
+                x, y, width, height = fold_control["rect"]
+                assert fold_control["visible"]
+                assert sidebar[0] <= x and x + width <= sidebar[0] + sidebar[2]
+                assert listing[1] + listing[3] <= y and y + height <= search[1]
+                exercise_sidebar_toggle()
+            scenario("plugins", "run", "appearance:dark")
+            ctl("resize", "720", "480")
+            capture("recent-sessions-dark-short")
+            scenario("tabs", "horizontal")
+            assert not any(item["visible"] for item in elements(older))
+            scenario("tabs", "vertical")
+            scenario("session", "close")
+            eventually(lambda: len(ctl("state")["sessions"]) == 4)
+            scenario("session", "close")
+            eventually(lambda: not elements(older))
+            # Tern 0.9.4 can retain its pre-close DOM, even without plugins.
+            # A mismatched row count must never hide another live session.
+            assert {"Gamma", "Beta", "Alpha"} <= {row[0] for row in positions()}
+            scenario("plugins", "run", "appearance:light")
+            ctl("resize", "1280", "800")
+            print("PASS: newest three, older-session toggle, hidden-session navigation, unread retention, filtering and deletion")
             print(f"Screenshots: {OUT}")
     except Exception:
         capture("failure")

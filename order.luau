@@ -1,9 +1,11 @@
 local Order = {}
 
--- Tern 0.8.4 paints each host's current session first, followed by its
--- remaining sessions in API order. Keep visual order in that API order.
-function Order.styles(sessions, hosts, tabs, unread)
+-- Native DOM order is current-first, then API order. Display newest-first
+-- within each host without letting focus change a session's position.
+function Order.styles(sessions, hosts, tabs, unread, show_older, current_session)
 	local groups = {}
+	local older_count = 0
+	local current_is_older = false
 	for _, host in hosts do
 		local members = {}
 		for _, session in sessions do
@@ -11,18 +13,29 @@ function Order.styles(sessions, hosts, tabs, unread)
 				table.insert(members, session)
 			end
 		end
+		older_count += math.max(0, #members - 3)
 		if #hosts > 1 then
 			table.insert(groups, { kind = "tn-vt-host", rank = #groups + 1 })
 		end
 		local first = #groups
+		local function group(index, session)
+			local older = index <= #members - 3
+			if older and session.id == current_session then current_is_older = true end
+			return {
+				kind = "nav-group",
+				rank = first + #members - index + 1,
+				session = session,
+				hidden = older and not show_older,
+			}
+		end
 		for index, session in members do
 			if session.current then
-				table.insert(groups, { kind = "nav-group", rank = first + index, session = session })
+				table.insert(groups, group(index, session))
 			end
 		end
 		for index, session in members do
 			if not session.current then
-				table.insert(groups, { kind = "nav-group", rank = first + index, session = session })
+				table.insert(groups, group(index, session))
 			end
 		end
 	end
@@ -35,6 +48,9 @@ function Order.styles(sessions, hosts, tabs, unread)
 		local selector = root .. "." .. group.kind .. ":nth-child(" .. index
 			.. "):nth-last-child(" .. (#groups - index + 1) .. ")"
 		table.insert(rules, selector .. " { order: " .. group.rank .. "; }")
+		if group.hidden then
+			table.insert(rules, selector .. " { display: none; }")
+		end
 		if group.session then
 			for _, tab in tabs do
 				if tab.session == group.session.id and unread[tab.id] then
@@ -47,7 +63,10 @@ function Order.styles(sessions, hosts, tabs, unread)
 			end
 		end
 	end
-	return table.concat(rules, "\n")
+	if older_count > 0 then
+		table.insert(rules, "html.tabs-v #sidebar > nav.tn-vt { margin-bottom: 36px; }")
+	end
+	return table.concat(rules, "\n"), older_count, current_is_older
 end
 
 return Order

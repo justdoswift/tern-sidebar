@@ -3,6 +3,9 @@ local last_order = nil
 local busy = {}
 local unread = {}
 local focused_tab = nil
+local show_older = false
+local older_count = 0
+local last_session = nil
 
 local function observe(tab)
 	local previous = busy[tab.id]
@@ -33,7 +36,21 @@ local function update_order(cx)
 	-- the new focus; a completion rendered during a switch was already visible.
 	focused_tab = focused and focused.tab or nil
 	if focused_tab then unread[focused_tab] = nil end
-	local css = Order.styles(cx.sessions:list(), cx.hosts:list(), tabs, unread)
+	local sessions, hosts = cx.sessions:list(), cx.hosts:list()
+	local current_session = cx.sessions:current().id
+	local css, count, current_is_older = Order.styles(sessions, hosts, tabs, unread, show_older, current_session)
+	-- Navigating to a hidden session through a shortcut/palette must reveal it.
+	if current_is_older and current_session ~= last_session then
+		show_older = true
+		css = Order.styles(sessions, hosts, tabs, unread, true, current_session)
+		tern.chrome.refresh()
+	end
+	last_session = current_session
+	if count ~= older_count then
+		older_count = count
+		if count == 0 then show_older = false end
+		tern.chrome.refresh()
+	end
 	if css ~= last_order then
 		tern.css("session-order", css)
 		last_order = css
@@ -95,13 +112,34 @@ tern.command({
 	end,
 })
 
+tern.command({
+	id = "toggle_older_sessions",
+	title = "展开／收起较早会话 / Show or hide older sessions",
+	available = function(cx)
+		return cx.settings:get("tabs") == "Vertical" and older_count > 0
+	end,
+	run = function(cx)
+		show_older = not show_older
+		update_order(cx)
+		tern.chrome.refresh()
+	end,
+})
+
 tern.chrome.status(function()
-	return { {
+	local segments = { {
 		text = sidebar_auto and "展开侧栏 / Expand sidebar" or "折叠侧栏 / Collapse sidebar",
 		icon = "sidebar",
 		tone = sidebar_auto and "muted" or "accent",
 		command = "plugin.tern-sidebar.toggle_sidebar",
 	} }
+	if older_count > 0 then
+		table.insert(segments, {
+			text = show_older and "▾ 收起较早会话 / Show less"
+				or ("▸ 较早会话 (" .. older_count .. ") / Older (" .. older_count .. ")"),
+			command = "plugin.tern-sidebar.toggle_older_sessions",
+		})
+	end
+	return segments
 end)
 
 for _, event in { "focus", "pane_created", "pane_closed", "tab_created", "tab_closed" } do
