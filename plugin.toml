@@ -1,7 +1,7 @@
 schema = 1
 id = "tern-sidebar"
 name = "Tern Sidebar"
-version = "0.3.0"
+version = "0.3.1"
 description = "Stable session navigation, quick creation, and native task spinners."
 icon = "sidebar"
 window = "window.luau"
